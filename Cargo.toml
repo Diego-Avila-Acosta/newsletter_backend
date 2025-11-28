@@ -13,3 +13,6 @@ name = "newsletter_backend"
 [dependencies]
 actix-web = "4"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+
+[dev-dependecies]
+reqwest = "0.11"
