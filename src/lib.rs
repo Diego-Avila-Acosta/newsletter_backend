@@ -3,6 +3,8 @@ use std::net::TcpListener;
 use actix_web::dev::Server;
 use actix_web::{App, HttpRequest, HttpResponse, HttpServer, Responder, web};
 
+pub mod configuration;
+
 async fn healtch_check(req: HttpRequest) -> impl Responder {
     HttpResponse::Ok().finish()
 }
