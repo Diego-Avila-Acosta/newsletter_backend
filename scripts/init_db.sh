@@ -26,7 +26,7 @@ docker run \
     -e POSTGRES_USER=${DB_USER} \
     -e POSTGRES_PASSWORD=${DB_PASSWORD} \
     -e POSTGRES_DB=${DB_NAME} \
-    -e "${DB_PORT}":5432 \
+    -p "${DB_PORT}":5432 \
     -d postgres \
     postgres -N 100
 
@@ -41,3 +41,4 @@ done
 DATABASE_URL=postgres://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}
 export DATABASE_URL
 sqlx database create
+sqlx migrate run
