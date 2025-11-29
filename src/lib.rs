@@ -2,7 +2,7 @@ use std::net::TcpListener;
 
 use actix_web::dev::Server;
 use actix_web::{App, HttpRequest, HttpResponse, HttpServer, Responder, web};
-use sqlx::PgConnection;
+use sqlx::PgPool;
 
 pub mod configuration;
 
@@ -10,7 +10,7 @@ async fn healtch_check(req: HttpRequest) -> impl Responder {
     HttpResponse::Ok().finish()
 }
 
-pub fn run(listener: TcpListener, connection: PgConnection) -> Result<Server, std::io::Error> {
+pub fn run(listener: TcpListener, connection: PgPool) -> Result<Server, std::io::Error> {
     let connection = web::Data::new(connection);
 
     let server = HttpServer::new(move || {

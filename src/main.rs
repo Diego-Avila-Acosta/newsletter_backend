@@ -2,13 +2,13 @@ use std::net::TcpListener;
 
 use newsletter_backend::configuration::get_configuration;
 use newsletter_backend::run;
-use sqlx::{Connection, PgConnection};
+use sqlx::{Connection, PgPool};
 
 #[tokio::main]
 async fn main() -> Result<(), std::io::Error> {
     let configuration = get_configuration().expect("Failed to read configuration");
 
-    let connection = PgConnection::connect(&configuration.database.connection_string())
+    let connection = PgPool::connect(&configuration.database.connection_string())
         .await
         .expect("Failed to connect to Postgres");
 
