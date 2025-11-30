@@ -1,6 +1,9 @@
 use std::net::TcpListener;
 
-use newsletter_backend::{configuration::get_configuration, run};
+use newsletter_backend::configuration::get_configuration;
+use newsletter_backend::startup::run;
+use newsletter_backend::telemetry::*;
+use once_cell::sync::Lazy;
 use reqwest;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use uuid::Uuid;
@@ -9,6 +12,19 @@ struct App {
     port: u16,
     db_pool: PgPool,
 }
+
+static TRACING: Lazy<()> = Lazy::new(|| {
+    let default_filter_name = "info".to_string();
+    let subscriber_name = "test".to_string();
+
+    if std::env::var("TEST_LOG").is_ok() {
+        let subscriber = get_subscriber(subscriber_name, default_filter_name, std::io::stdout);
+        init_subscriber(subscriber);
+    } else {
+        let subscriber = get_subscriber(subscriber_name, default_filter_name, std::io::sink);
+        init_subscriber(subscriber);
+    }
+});
 
 #[tokio::test]
 async fn health_check_works() {
@@ -80,13 +96,14 @@ async fn subscribe_returns_a_400_when_data_is_missing() {
 }
 
 async fn spawn_app() -> Result<App, std::io::Error> {
+    Lazy::force(&TRACING);
+
     let listener = TcpListener::bind("127.0.0.1:0").expect("Error Trying to bind address");
     let port = listener.local_addr().unwrap().port();
 
     let db_pool = configure_database().await;
 
-    let server =
-        newsletter_backend::run(listener, db_pool.clone()).expect("Failed to bind address");
+    let server = run(listener, db_pool.clone()).expect("Failed to bind address");
 
     let _ = tokio::spawn(server);
 
