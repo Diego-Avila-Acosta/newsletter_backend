@@ -5,14 +5,20 @@ use actix_web::{App, HttpRequest, HttpResponse, HttpServer, Responder, web};
 use sqlx::PgPool;
 use tracing_actix_web::TracingLogger;
 
+use crate::email_client::EmailClient;
 use crate::routes::subscribe;
 
 async fn healtch_check(req: HttpRequest) -> impl Responder {
     HttpResponse::Ok().finish()
 }
 
-pub fn run(listener: TcpListener, connection: PgPool) -> Result<Server, std::io::Error> {
+pub fn run(
+    listener: TcpListener,
+    connection: PgPool,
+    email_client: EmailClient,
+) -> Result<Server, std::io::Error> {
     let connection = web::Data::new(connection);
+    let email_client = web::Data::new(email_client);
 
     let server = HttpServer::new(move || {
         App::new()
@@ -20,6 +26,7 @@ pub fn run(listener: TcpListener, connection: PgPool) -> Result<Server, std::io:
             .route("/health_check", web::get().to(healtch_check))
             .route("/subscriptions", web::post().to(subscribe))
             .app_data(connection.clone())
+            .app_data(email_client.clone())
     })
     .listen(listener)?
     .run();
