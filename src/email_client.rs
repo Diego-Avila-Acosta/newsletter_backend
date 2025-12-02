@@ -1,6 +1,7 @@
 use reqwest::Client;
 use secrecy::{ExposeSecret, Secret};
 use serde::Serialize;
+use std::time::Duration;
 
 use crate::domain::SubscriberEmail;
 
@@ -16,10 +17,11 @@ impl EmailClient {
         base_url: String,
         sender: SubscriberEmail,
         authorization_token: Secret<String>,
+        timeout: Duration,
     ) -> Self {
         Self {
             http_client: Client::builder()
-                .timeout(std::time::Duration::from_secs(10))
+                .timeout(std::time::Duration::from_millis(200))
                 .build()
                 .unwrap(),
             base_url,
@@ -72,6 +74,8 @@ struct SendEmailRequest<'a> {
 
 #[cfg(test)]
 mod test {
+    use std::time::Duration;
+
     use claims::{assert_err, assert_ok};
     use fake::faker::internet::en::SafeEmail;
     use fake::faker::lorem::en::{Paragraph, Sentence};
@@ -114,7 +118,12 @@ mod test {
     }
 
     fn email_client(base_url: String) -> EmailClient {
-        EmailClient::new(base_url, email(), Secret::new(Faker.fake()))
+        EmailClient::new(
+            base_url,
+            email(),
+            Secret::new(Faker.fake()),
+            Duration::from_secs(10),
+        )
     }
 
     #[tokio::test]
