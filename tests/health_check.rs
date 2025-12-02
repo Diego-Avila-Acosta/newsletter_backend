@@ -1,6 +1,7 @@
 use std::net::TcpListener;
 
-use newsletter_backend::configuration::get_configuration;
+use newsletter_backend::configuration::{DatabaseSettings, get_configuration};
+use newsletter_backend::email_client::EmailClient;
 use newsletter_backend::startup::run;
 use newsletter_backend::telemetry::*;
 use once_cell::sync::Lazy;
@@ -99,23 +100,31 @@ async fn subscribe_returns_a_400_when_data_is_missing() {
 async fn spawn_app() -> Result<App, std::io::Error> {
     Lazy::force(&TRACING);
 
+    let mut configuration = get_configuration().expect("Failed to load configuration");
+
     let listener = TcpListener::bind("127.0.0.1:0").expect("Error Trying to bind address");
     let port = listener.local_addr().unwrap().port();
 
-    let db_pool = configure_database().await;
+    let db_pool = configure_database(&mut configuration.database).await;
 
-    let server = run(listener, db_pool.clone()).expect("Failed to bind address");
+    let sender_email = configuration
+        .email_client
+        .sender()
+        .expect("Invalid sender email address");
+    let email_client = EmailClient::new(
+        configuration.email_client.base_url,
+        sender_email,
+        configuration.email_client.authorization_token,
+    );
+
+    let server = run(listener, db_pool.clone(), email_client).expect("Failed to bind address");
 
     let _ = tokio::spawn(server);
 
     Ok(App { port, db_pool })
 }
 
-async fn configure_database() -> PgPool {
-    let mut configuration = get_configuration()
-        .expect("Failed to load configuration")
-        .database;
-
+async fn configure_database(configuration: &mut DatabaseSettings) -> PgPool {
     configuration.database_name = Uuid::new_v4().to_string();
 
     let mut connection = PgConnection::connect(&configuration.connection_string_without_db())
