@@ -1,4 +1,4 @@
-use newsletter_backend::startup::build;
+use newsletter_backend::startup::Application;
 use newsletter_backend::telemetry::init_subscriber;
 use newsletter_backend::{configuration::get_configuration, telemetry::get_subscriber};
 
@@ -9,8 +9,6 @@ async fn main() -> Result<(), std::io::Error> {
 
     let configuration = get_configuration().expect("Error reading initial configuration");
 
-    let server = build(configuration)?;
-    server.await?;
-
-    Ok(())
+    let server = Application::build(configuration)?;
+    server.run_until_stopped().await
 }

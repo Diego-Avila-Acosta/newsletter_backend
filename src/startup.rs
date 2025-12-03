@@ -11,33 +11,53 @@ use crate::email_client::EmailClient;
 use crate::routes::health_check;
 use crate::routes::subscribe;
 
-pub fn build(configuration: Settings) -> Result<Server, std::io::Error> {
-    let connection_options = configuration
-        .database
-        .connection_string()
+pub struct Application {
+    port: u16,
+    server: Server,
+}
+
+impl Application {
+    pub fn build(configuration: Settings) -> Result<Self, std::io::Error> {
+        let connection = get_connection_pool(configuration.database.connection_string());
+
+        let sender_email = configuration
+            .email_client
+            .sender()
+            .expect("Invalid sender email address");
+        let timeout = configuration.email_client.timeout();
+        let email_client = EmailClient::new(
+            configuration.email_client.base_url,
+            sender_email,
+            configuration.email_client.authorization_token,
+            timeout,
+        );
+
+        let address = format!(
+            "{}:{}",
+            configuration.application.host, configuration.application.port
+        );
+        let listener = TcpListener::bind(address).expect("Failed to bind address");
+        let port = listener.local_addr().unwrap().port();
+        let server = run(listener, connection, email_client)?;
+
+        Ok(Self { port, server })
+    }
+
+    pub fn port(&self) -> u16 {
+        self.port
+    }
+
+    pub async fn run_until_stopped(self) -> Result<(), std::io::Error> {
+        self.server.await
+    }
+}
+
+pub fn get_connection_pool(connection_string: String) -> PgPool {
+    let options = connection_string
         .parse()
         .expect("Error parsing connection options");
-    let connection = PgPoolOptions::new().connect_lazy_with(connection_options);
 
-    let sender_email = configuration
-        .email_client
-        .sender()
-        .expect("Invalid sender email address");
-    let timeout = configuration.email_client.timeout();
-    let email_client = EmailClient::new(
-        configuration.email_client.base_url,
-        sender_email,
-        configuration.email_client.authorization_token,
-        timeout,
-    );
-
-    let address = format!(
-        "{}:{}",
-        configuration.application.host, configuration.application.port
-    );
-    let listener = TcpListener::bind(address).expect("Failed to bind address");
-
-    run(listener, connection, email_client)
+    PgPoolOptions::new().connect_lazy_with(options)
 }
 
 fn run(
