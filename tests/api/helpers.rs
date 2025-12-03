@@ -58,6 +58,7 @@ pub async fn spawn_app() -> Result<TestApp, std::io::Error> {
     Ok(TestApp {
         address,
         db_pool: get_connection_pool(configuration.database.connection_string()),
+        http_client: reqwest::Client::new(),
     })
 }
 
