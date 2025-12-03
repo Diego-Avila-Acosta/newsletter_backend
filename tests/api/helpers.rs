@@ -1,14 +1,12 @@
 use newsletter_backend::configuration::{DatabaseSettings, get_configuration};
-use newsletter_backend::email_client::EmailClient;
-use newsletter_backend::startup::run;
+use newsletter_backend::startup::{Application, get_connection_pool};
 use newsletter_backend::telemetry::{get_subscriber, init_subscriber};
 use once_cell::sync::Lazy;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
-use std::net::TcpListener;
 use uuid::Uuid;
 
-pub struct App {
-    pub port: u16,
+pub struct TestApp {
+    pub address: String,
     pub db_pool: PgPool,
 }
 
@@ -25,37 +23,32 @@ static TRACING: Lazy<()> = Lazy::new(|| {
     }
 });
 
-pub async fn spawn_app() -> Result<App, std::io::Error> {
+pub async fn spawn_app() -> Result<TestApp, std::io::Error> {
     Lazy::force(&TRACING);
 
-    let mut configuration = get_configuration().expect("Failed to load configuration");
+    let mut configuration = {
+        let mut c = get_configuration().expect("Failed to load configuration");
 
-    let listener = TcpListener::bind("127.0.0.1:0").expect("Error Trying to bind address");
-    let port = listener.local_addr().unwrap().port();
+        c.database.database_name = Uuid::new_v4().to_string();
+        c.application.port = 0;
 
-    let db_pool = configure_database(&mut configuration.database).await;
+        c
+    };
 
-    let sender_email = configuration
-        .email_client
-        .sender()
-        .expect("Invalid sender email address");
-    let timeout = configuration.email_client.timeout();
+    configure_database(&mut configuration.database).await;
 
-    let email_client = EmailClient::new(
-        configuration.email_client.base_url,
-        sender_email,
-        configuration.email_client.authorization_token,
-        timeout,
-    );
+    let server = Application::build(configuration.clone()).expect("Failed to build the app");
+    let address = format!("http://127.0.0.1:{}", server.port());
 
-    let server = run(listener, db_pool.clone(), email_client).expect("Failed to bind address");
+    let _ = tokio::spawn(server.run_until_stopped());
 
-    let _ = tokio::spawn(server);
-
-    Ok(App { port, db_pool })
+    Ok(TestApp {
+        address,
+        db_pool: get_connection_pool(configuration.database.connection_string()),
+    })
 }
 
-async fn configure_database(configuration: &mut DatabaseSettings) -> PgPool {
+async fn configure_database(configuration: &mut DatabaseSettings) {
     configuration.database_name = Uuid::new_v4().to_string();
 
     let mut connection = PgConnection::connect(&configuration.connection_string_without_db())
@@ -75,6 +68,4 @@ async fn configure_database(configuration: &mut DatabaseSettings) -> PgPool {
         .run(&pool)
         .await
         .expect("Failed to migrate database");
-
-    pool
 }
