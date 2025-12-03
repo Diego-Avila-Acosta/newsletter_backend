@@ -8,6 +8,19 @@ use uuid::Uuid;
 pub struct TestApp {
     pub address: String,
     pub db_pool: PgPool,
+    http_client: reqwest::Client,
+}
+
+impl TestApp {
+    pub async fn post_subscription(&self, body: String) -> reqwest::Response {
+        self.http_client
+            .post(format!("{}/subscriptions", self.address))
+            .header("Content-Type", "application/x-www-form-urlencoded")
+            .body(body)
+            .send()
+            .await
+            .expect("Failed to execute request.")
+    }
 }
 
 static TRACING: Lazy<()> = Lazy::new(|| {
