@@ -75,6 +75,7 @@ mod tests {
         }
     }
 
+    #[test]
     fn a_valid_name_is_parsed_succesfully() {
         let name = "Diego".to_string();
         assert_ok!(SubscriberName::parse(name));
