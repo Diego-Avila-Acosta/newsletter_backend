@@ -36,13 +36,14 @@ async fn subscribe_persists_the_new_subscriber() {
     let body = "name=diego&email=diego20@gmail.com";
     app.post_subscription(body.into()).await;
 
-    let query = sqlx::query!("SELECT email, name FROM subscriptions")
+    let query = sqlx::query!("SELECT email, name, status FROM subscriptions")
         .fetch_one(&app.db_pool)
         .await
         .expect("Failed to fetch saved subscription");
 
     assert_eq!(query.email, "diego20@gmail.com");
     assert_eq!(query.name, "diego");
+    assert_eq!(query.status, "pending_confirmation");
 }
 
 #[tokio::test]
