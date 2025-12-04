@@ -7,7 +7,7 @@ use crate::helpers::spawn_app;
 
 #[tokio::test]
 async fn subscribe_returns_a_200_for_valid_form_data() {
-    let app = spawn_app().await.expect("Failed to spawn our app.");
+    let app = spawn_app().await;
 
     Mock::given(path("/email"))
         .and(method("POST"))
@@ -24,7 +24,7 @@ async fn subscribe_returns_a_200_for_valid_form_data() {
 
 #[tokio::test]
 async fn subscribe_persists_the_new_subscriber() {
-    let app = spawn_app().await.expect("Failed to spawn our app.");
+    let app = spawn_app().await;
 
     Mock::given(path("/email"))
         .and(method("POST"))
@@ -48,7 +48,7 @@ async fn subscribe_persists_the_new_subscriber() {
 
 #[tokio::test]
 async fn subscribe_returns_a_400_when_data_is_missing() {
-    let app = spawn_app().await.expect("Failed to spawn our app.");
+    let app = spawn_app().await;
 
     let test_cases = vec![
         ("name=diego", "missing the email"),
@@ -70,7 +70,7 @@ async fn subscribe_returns_a_400_when_data_is_missing() {
 
 #[tokio::test]
 async fn subscribe_returns_a_400_when_fields_are_present_but_invalid() {
-    let app = spawn_app().await.expect("Failed to spawn our app.");
+    let app = spawn_app().await;
 
     let test_cases = vec![
         ("name=&email=diego20@gmail.com", "empty name"),
@@ -92,7 +92,7 @@ async fn subscribe_returns_a_400_when_fields_are_present_but_invalid() {
 
 #[tokio::test]
 async fn subscribe_sends_a_confirmation_email_for_valid_data() {
-    let app = spawn_app().await.expect("Failed to spawn our app");
+    let app = spawn_app().await;
     let body = "name=diego&email=diego20@gmail.com";
 
     Mock::given(path("/email"))
@@ -107,7 +107,7 @@ async fn subscribe_sends_a_confirmation_email_for_valid_data() {
 
 #[tokio::test]
 async fn subscribe_sends_a_confirmation_email_with_a_link() {
-    let app = spawn_app().await.expect("Failed to spawn our app");
+    let app = spawn_app().await;
     let body = "name=diego&email=diego20@gmail.com";
 
     Mock::given(path("/email"))

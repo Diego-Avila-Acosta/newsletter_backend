@@ -38,7 +38,7 @@ static TRACING: Lazy<()> = Lazy::new(|| {
     }
 });
 
-pub async fn spawn_app() -> Result<TestApp, std::io::Error> {
+pub async fn spawn_app() -> TestApp {
     Lazy::force(&TRACING);
 
     let email_server = MockServer::start().await;
@@ -61,12 +61,12 @@ pub async fn spawn_app() -> Result<TestApp, std::io::Error> {
 
     let _ = tokio::spawn(server.run_until_stopped());
 
-    Ok(TestApp {
+    TestApp {
         address,
         db_pool: get_connection_pool(configuration.database.connection_string()),
         http_client: reqwest::Client::new(),
         email_server,
-    })
+    }
 }
 
 async fn configure_database(configuration: &mut DatabaseSettings) {
