@@ -5,6 +5,7 @@ use std::time::Duration;
 
 use crate::domain::SubscriberEmail;
 
+#[derive(Debug)]
 pub struct EmailClient {
     sender: SubscriberEmail,
     base_url: String,
@@ -20,10 +21,7 @@ impl EmailClient {
         timeout: Duration,
     ) -> Self {
         Self {
-            http_client: Client::builder()
-                .timeout(std::time::Duration::from_millis(200))
-                .build()
-                .unwrap(),
+            http_client: Client::builder().timeout(timeout).build().unwrap(),
             base_url,
             sender,
             authorization_token,
@@ -122,7 +120,7 @@ mod test {
             base_url,
             email(),
             Secret::new(Faker.fake()),
-            Duration::from_secs(10),
+            Duration::from_millis(200),
         )
     }
 
