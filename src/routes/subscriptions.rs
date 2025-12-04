@@ -1,7 +1,7 @@
-use std::fmt::format;
-
 use actix_web::{HttpResponse, web};
 use chrono::Utc;
+use rand::distributions::Alphanumeric;
+use rand::{Rng, thread_rng};
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -51,9 +51,14 @@ pub async fn subscribe(
         return HttpResponse::InternalServerError().finish();
     }
 
-    if send_confirmation_email(email_client.get_ref(), new_subscriber, &base_url.0)
-        .await
-        .is_err()
+    if send_confirmation_email(
+        email_client.get_ref(),
+        new_subscriber,
+        &base_url.0,
+        "mytoken",
+    )
+    .await
+    .is_err()
     {
         return HttpResponse::InternalServerError().finish();
     }
@@ -87,14 +92,18 @@ pub async fn insert_subscriber(pool: &PgPool, form: &NewSubscriber) -> Result<()
 
 #[tracing::instrument(
     name = "Send a confirmation email to a new subscriber"
-    skip (email_client, new_subscriber)
+    skip (email_client, new_subscriber, base_url, subscription_token)
 )]
 pub async fn send_confirmation_email(
     email_client: &EmailClient,
     new_subscriber: NewSubscriber,
     base_url: &str,
+    subscription_token: &str,
 ) -> Result<(), reqwest::Error> {
-    let confirmation_link = format!("{}/subscriptions/confirm", base_url);
+    let confirmation_link = format!(
+        "{}/subscriptions/confirm?subscription_token={}",
+        base_url, subscription_token
+    );
 
     let html_body = format!(
         "Welcome to our newsletter!<bt />\
@@ -109,4 +118,12 @@ pub async fn send_confirmation_email(
     email_client
         .send_email(new_subscriber.email, "Welcome!", &html_body, &plain_body)
         .await
+}
+
+fn generate_subscription_token() -> String {
+    let mut rng = thread_rng();
+    std::iter::repeat_with(|| rng.sample(Alphanumeric))
+        .map(char::from)
+        .take(25)
+        .collect()
 }
