@@ -64,7 +64,8 @@ pub fn get_connection_pool(connection_string: String) -> PgPool {
     PgPoolOptions::new().connect_lazy_with(options)
 }
 
-pub struct ApplicationBaseUrl(String);
+#[derive(Debug)]
+pub struct ApplicationBaseUrl(pub String);
 
 fn run(
     listener: TcpListener,
