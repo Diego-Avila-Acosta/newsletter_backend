@@ -4,11 +4,13 @@ use newsletter_backend::telemetry::{get_subscriber, init_subscriber};
 use once_cell::sync::Lazy;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use uuid::Uuid;
+use wiremock::MockServer;
 
 pub struct TestApp {
     pub address: String,
     pub db_pool: PgPool,
     http_client: reqwest::Client,
+    pub email_server: MockServer,
 }
 
 impl TestApp {
@@ -39,11 +41,15 @@ static TRACING: Lazy<()> = Lazy::new(|| {
 pub async fn spawn_app() -> Result<TestApp, std::io::Error> {
     Lazy::force(&TRACING);
 
+    let email_server = MockServer::start().await;
+
     let mut configuration = {
         let mut c = get_configuration().expect("Failed to load configuration");
 
         c.database.database_name = Uuid::new_v4().to_string();
         c.application.port = 0;
+
+        c.email_client.base_url = email_server.uri();
 
         c
     };
@@ -59,6 +65,7 @@ pub async fn spawn_app() -> Result<TestApp, std::io::Error> {
         address,
         db_pool: get_connection_pool(configuration.database.connection_string()),
         http_client: reqwest::Client::new(),
+        email_server,
     })
 }
 
