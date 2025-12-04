@@ -44,7 +44,14 @@ pub async fn subscribe(
         Err(err) => return HttpResponse::BadRequest().body(err),
     };
 
-    if insert_subscriber(pool.get_ref(), &new_subscriber)
+    let subscriber_id = match insert_subscriber(pool.get_ref(), &new_subscriber).await {
+        Ok(subscriber_id) => subscriber_id,
+        Err(_) => return HttpResponse::InternalServerError().finish(),
+    };
+
+    let subscription_token = generate_subscription_token();
+
+    if store_token(&pool, subscriber_id, &subscription_token)
         .await
         .is_err()
     {
@@ -55,7 +62,7 @@ pub async fn subscribe(
         email_client.get_ref(),
         new_subscriber,
         &base_url.0,
-        "mytoken",
+        &subscription_token,
     )
     .await
     .is_err()
@@ -70,12 +77,14 @@ pub async fn subscribe(
     name = "Saving new subcriber details in the database",
     skip(form, pool)
 )]
-pub async fn insert_subscriber(pool: &PgPool, form: &NewSubscriber) -> Result<(), sqlx::Error> {
+pub async fn insert_subscriber(pool: &PgPool, form: &NewSubscriber) -> Result<Uuid, sqlx::Error> {
+    let subscriber_id = Uuid::new_v4();
+
     sqlx::query!(
         r#"INSERT INTO subscriptions (id, email, name, subscribed_at, status)
         VALUES ($1, $2, $3, $4, 'pending_confirmation')
         "#,
-        Uuid::new_v4(),
+        subscriber_id,
         form.email.as_ref(),
         form.name.as_ref(),
         Utc::now(),
@@ -84,6 +93,32 @@ pub async fn insert_subscriber(pool: &PgPool, form: &NewSubscriber) -> Result<()
     .await
     .map_err(|e| {
         tracing::error!("Failed to execute query: {:?}", e);
+        e
+    })?;
+
+    Ok(subscriber_id)
+}
+
+#[tracing::instrument(
+    name = "Store subscriber token in the database"
+    skip(db_pool, subscriber_id, subscription_token)
+)]
+pub async fn store_token(
+    db_pool: &PgPool,
+    subscriber_id: Uuid,
+    subscription_token: &str,
+) -> Result<(), sqlx::Error> {
+    sqlx::query!(
+        r#"INSERT INTO subscription_tokens(subscription_token, subscriber_id) 
+        VALUES ($1, $2)"#,
+        subscription_token,
+        subscriber_id
+    )
+    .execute(db_pool)
+    .await
+    .map_err(|e| {
+        tracing::error!("Falied to execute query {:?}", e);
+
         e
     })?;
 
