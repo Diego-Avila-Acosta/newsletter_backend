@@ -8,6 +8,7 @@ use wiremock::MockServer;
 
 pub struct TestApp {
     pub address: String,
+    pub port: u16,
     pub db_pool: PgPool,
     http_client: reqwest::Client,
     pub email_server: MockServer,
@@ -57,7 +58,8 @@ pub async fn spawn_app() -> TestApp {
     configure_database(&mut configuration.database).await;
 
     let server = Application::build(configuration.clone()).expect("Failed to build the app");
-    let address = format!("http://127.0.0.1:{}", server.port());
+    let port = server.port();
+    let address = format!("http://127.0.0.1:{}", port);
 
     let _ = tokio::spawn(server.run_until_stopped());
 
@@ -66,6 +68,7 @@ pub async fn spawn_app() -> TestApp {
         db_pool: get_connection_pool(configuration.database.connection_string()),
         http_client: reqwest::Client::new(),
         email_server,
+        port,
     }
 }
 
