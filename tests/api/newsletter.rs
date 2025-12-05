@@ -4,7 +4,7 @@ use wiremock::{Mock, ResponseTemplate};
 use crate::helpers::{ConfirmationLinks, TestApp, spawn_app};
 
 #[tokio::test]
-async fn newsletters_are_note_delivered_to_unconfirmed_subscribers() {
+async fn newsletters_are_not_delivered_to_unconfirmed_subscribers() {
     let app = spawn_app().await;
     create_unconfirmed_subscriber(&app).await;
 
@@ -34,7 +34,7 @@ async fn newsletters_are_note_delivered_to_unconfirmed_subscribers() {
 }
 
 #[tokio::test]
-async fn newsletters_are_note_delivered_to_unconfirmed_subscribers() {
+async fn newsletters_are_delivered_to_confirmed_subscribers() {
     let app = spawn_app().await;
     create_confirmed_subscriber(&app).await;
 
@@ -78,9 +78,9 @@ async fn create_unconfirmed_subscriber(app: &TestApp) -> ConfirmationLinks {
         .error_for_status()
         .unwrap();
 
-    let email_request = &app.email_server.received_requests().await.unwrap[0];
+    let email_request = &app.email_server.received_requests().await.unwrap()[0];
 
-    app.get_confirmation_links(&email_request);
+    app.get_confirmation_links(&email_request)
 }
 
 async fn create_confirmed_subscriber(app: &TestApp) {
@@ -91,4 +91,44 @@ async fn create_confirmed_subscriber(app: &TestApp) {
         .unwrap()
         .error_for_status()
         .unwrap();
+}
+
+#[tokio::test]
+async fn newsletters_return_400_for_invalid_data() {
+    let app = spawn_app().await;
+    create_unconfirmed_subscriber(&app).await;
+
+    let test_cases = [
+        (
+            serde_json::json!({
+                "title": "Newsletter title",
+            }),
+            "missing content",
+        ),
+        (
+            serde_json::json!({
+            "content": {
+                "text": "Newsletter body as plain text",
+                "html": "<p>Newsletter body as HTML</p>"
+            }
+            }),
+            "missing title",
+        ),
+    ];
+
+    for (invalid_json, message) in test_cases {
+        let response = reqwest::Client::new()
+            .post(&format!("{}/newsletters", &app.address))
+            .json(&invalid_json)
+            .send()
+            .await
+            .expect("Failed to execute request.");
+
+        assert_eq!(
+            response.status().as_u16(),
+            400,
+            "The API did not fail with 400 Bad Request when te payload was {}",
+            message
+        );
+    }
 }
