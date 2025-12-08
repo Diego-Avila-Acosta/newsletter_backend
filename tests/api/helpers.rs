@@ -1,3 +1,5 @@
+use argon2::password_hash::SaltString;
+use argon2::{Argon2, Params, PasswordHasher};
 use newsletter_backend::configuration::{DatabaseSettings, get_configuration};
 use newsletter_backend::startup::{Application, get_connection_pool};
 use newsletter_backend::telemetry::{get_subscriber, init_subscriber};
@@ -12,6 +14,7 @@ pub struct TestApp {
     pub db_pool: PgPool,
     http_client: reqwest::Client,
     pub email_server: MockServer,
+    pub test_user: TestUser,
 }
 
 impl TestApp {
@@ -52,12 +55,54 @@ impl TestApp {
     }
 
     pub async fn post_newsletters(&self, body: serde_json::Value) -> reqwest::Response {
+        let (username, password) = (&self.test_user.username, &self.test_user.password);
+
         reqwest::Client::new()
             .post(&format!("{}/newsletters", &self.address))
             .json(&body)
+            .basic_auth(username, Some(password))
             .send()
             .await
             .expect("Failed to execute request.")
+    }
+}
+
+pub struct TestUser {
+    pub user_id: Uuid,
+    pub username: String,
+    pub password: String,
+}
+
+impl TestUser {
+    pub fn generate() -> Self {
+        Self {
+            user_id: Uuid::new_v4(),
+            username: Uuid::new_v4().to_string(),
+            password: Uuid::new_v4().to_string(),
+        }
+    }
+
+    async fn store(&self, pool: &PgPool) {
+        let salt = SaltString::generate(&mut rand::thread_rng());
+
+        let password_hash = Argon2::new(
+            argon2::Algorithm::Argon2id,
+            argon2::Version::V0x13,
+            Params::new(1500, 2, 1, None).unwrap(),
+        )
+        .hash_password(self.password.as_bytes(), &salt)
+        .unwrap()
+        .to_string();
+
+        sqlx::query!(
+            "INSERT INTO users(user_id, username, password_hash) VALUES ($1, $2, $3)",
+            self.user_id,
+            self.username,
+            password_hash,
+        )
+        .execute(pool)
+        .await
+        .expect("Failed to store test user.");
     }
 }
 
@@ -103,13 +148,18 @@ pub async fn spawn_app() -> TestApp {
 
     let _ = tokio::spawn(server.run_until_stopped());
 
-    TestApp {
+    let test_app = TestApp {
         address,
         db_pool: get_connection_pool(configuration.database.connection_string()),
         http_client: reqwest::Client::new(),
         email_server,
         port,
-    }
+        test_user: TestUser::generate(),
+    };
+
+    test_app.test_user.store(&test_app.db_pool).await;
+
+    test_app
 }
 
 async fn configure_database(configuration: &mut DatabaseSettings) {
