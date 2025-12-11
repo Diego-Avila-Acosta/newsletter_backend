@@ -89,7 +89,6 @@ fn run(
     let message_store =
         CookieMessageStore::builder(Key::from(hmac_secret.expose_secret().as_bytes())).build();
     let message_framework = FlashMessagesFramework::builder(message_store).build();
-    let hmac_secret = web::Data::new(HmacSecret(hmac_secret));
 
     let server = HttpServer::new(move || {
         App::new()
@@ -105,7 +104,6 @@ fn run(
             .app_data(connection.clone())
             .app_data(email_client.clone())
             .app_data(base_url.clone())
-            .app_data(hmac_secret.clone())
     })
     .listen(listener)?
     .run();
