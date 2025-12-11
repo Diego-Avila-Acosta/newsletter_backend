@@ -57,13 +57,36 @@ impl TestApp {
     pub async fn post_newsletters(&self, body: serde_json::Value) -> reqwest::Response {
         let (username, password) = (&self.test_user.username, &self.test_user.password);
 
-        reqwest::Client::new()
+        self.http_client
             .post(&format!("{}/newsletters", &self.address))
             .json(&body)
             .basic_auth(username, Some(password))
             .send()
             .await
             .expect("Failed to execute request.")
+    }
+
+    pub async fn post_login<Body>(&self, body: &Body) -> reqwest::Response
+    where
+        Body: serde::Serialize,
+    {
+        self.http_client
+            .post(&format!("{}/login", &self.address))
+            .form(body)
+            .send()
+            .await
+            .expect("Failed to execute requets.")
+    }
+
+    pub async fn get_login_html(&self) -> String {
+        self.http_client
+            .get(&format!("{}/login", &self.address))
+            .send()
+            .await
+            .expect("Failed to execute request.")
+            .text()
+            .await
+            .unwrap()
     }
 }
 
@@ -148,10 +171,16 @@ pub async fn spawn_app() -> TestApp {
 
     let _ = tokio::spawn(server.run_until_stopped());
 
+    let http_client = reqwest::Client::builder()
+        .redirect(reqwest::redirect::Policy::none())
+        .cookie_store(true)
+        .build()
+        .unwrap();
+
     let test_app = TestApp {
         address,
         db_pool: get_connection_pool(configuration.database.connection_string()),
-        http_client: reqwest::Client::new(),
+        http_client,
         email_server,
         port,
         test_user: TestUser::generate(),
@@ -182,4 +211,9 @@ async fn configure_database(configuration: &mut DatabaseSettings) {
         .run(&pool)
         .await
         .expect("Failed to migrate database");
+}
+
+pub fn assert_is_redirect_to(response: &reqwest::Response, location: &str) {
+    assert_eq!(response.status().as_u16(), 303);
+    assert_eq!(response.headers().get("Location").unwrap(), location);
 }
