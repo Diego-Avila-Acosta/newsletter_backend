@@ -88,6 +88,17 @@ impl TestApp {
             .await
             .unwrap()
     }
+
+    pub async fn get_admin_dashboard_html(&self) -> String {
+        self.http_client
+            .get(&format!("{}/admin/dashboard", &self.address))
+            .send()
+            .await
+            .expect("Failed to execute request.")
+            .text()
+            .await
+            .unwrap()
+    }
 }
 
 pub struct TestUser {
@@ -165,7 +176,9 @@ pub async fn spawn_app() -> TestApp {
 
     configure_database(&mut configuration.database).await;
 
-    let server = Application::build(configuration.clone()).expect("Failed to build the app");
+    let server = Application::build(configuration.clone())
+        .await
+        .expect("Failed to build the app");
     let port = server.port();
     let address = format!("http://127.0.0.1:{}", port);
 
