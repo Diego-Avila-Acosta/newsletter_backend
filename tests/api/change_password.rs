@@ -58,3 +58,87 @@ async fn new_password_fields_must_match() {
                 the field values must match.</i></p>"
     ))
 }
+
+#[tokio::test]
+async fn current_password_must_be_vaild() {
+    let app = spawn_app().await;
+
+    let user_credentials = &serde_json::json!({
+        "username": &app.test_user.username,
+        "password": &app.test_user.password
+    });
+
+    app.post_login(user_credentials).await;
+
+    let new_password = Uuid::new_v4().to_string();
+
+    let json = &serde_json::json!({
+        "current_password": &Uuid::new_v4().to_string(),
+        "new_password": &new_password,
+        "new_password_check": &new_password,
+    });
+
+    let response = app.post_change_password(json).await;
+
+    assert_is_redirect_to(&response, "/admin/password");
+
+    let html_page = app.get_change_password_html().await;
+
+    assert!(html_page.contains("<p><i>The current password is incorrect.</i></p>"))
+}
+
+#[tokio::test]
+async fn new_password_is_too_short() {
+    let app = spawn_app().await;
+
+    let user_credentials = &serde_json::json!({
+        "username": &app.test_user.username,
+        "password": &app.test_user.password
+    });
+
+    app.post_login(user_credentials).await;
+
+    let new_password = "ê".repeat(12);
+
+    let json = &serde_json::json!({
+        "current_password": &app.test_user.password,
+        "new_password": &new_password,
+        "new_password_check": &new_password,
+    });
+
+    let response = app.post_change_password(json).await;
+
+    assert_is_redirect_to(&response, "/admin/password");
+
+    let html_page = app.get_change_password_html().await;
+
+    assert!(html_page.contains("<p><i>The new password must be longer than 12 characters and shorter than 129 characters.</i></p>"))
+}
+
+#[tokio::test]
+async fn new_password_is_too_long() {
+    let app = spawn_app().await;
+
+    let user_credentials = &serde_json::json!({
+        "username": &app.test_user.username,
+        "password": &app.test_user.password
+    });
+
+    app.post_login(user_credentials).await;
+
+    let new_password = "ê".repeat(129);
+
+    let json = &serde_json::json!({
+        "current_password": &app.test_user.password,
+        "new_password": &new_password,
+        "new_password_check": &new_password,
+    });
+
+    let response = app.post_change_password(json).await;
+
+    assert_is_redirect_to(&response, "/admin/password");
+
+    let html_page = app.get_change_password_html().await;
+
+    assert!(html_page.contains("<p><i>The new password must be longer than 12 characters and shorter than 129 characters.</i></p>"))
+}
