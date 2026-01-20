@@ -42,7 +42,7 @@ async fn new_password_fields_must_match() {
     let another_password = Uuid::new_v4().to_string();
 
     let json = &serde_json::json!({
-        "current_password": Uuid::new_v4().to_string(),
+        "current_password": &app.test_user.password,
         "new_password": &new_password,
         "new_password_check": &another_password,
     });
@@ -54,7 +54,7 @@ async fn new_password_fields_must_match() {
     let html_page = app.get_change_password_html().await;
 
     assert!(html_page.contains(
-        "<p><i>You enterede two different new passwords - \
+        "<p><i>You entered two different new passwords - \
                 the field values must match.</i></p>"
     ))
 }
