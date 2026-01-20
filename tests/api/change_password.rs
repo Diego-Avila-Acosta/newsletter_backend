@@ -26,3 +26,35 @@ async fn you_must_be_logged_in_to_change_password() {
 
     assert_is_redirect_to(&response, "/login");
 }
+
+#[tokio::test]
+async fn new_password_fields_must_match() {
+    let app = spawn_app().await;
+
+    let user_credentials = &serde_json::json!({
+        "username": &app.test_user.username,
+        "password": &app.test_user.password
+    });
+
+    app.post_login(user_credentials).await;
+
+    let new_password = Uuid::new_v4().to_string();
+    let another_password = Uuid::new_v4().to_string();
+
+    let json = &serde_json::json!({
+        "current_password": Uuid::new_v4().to_string(),
+        "new_password": &new_password,
+        "new_password_check": &another_password,
+    });
+
+    let response = app.post_change_password(json).await;
+
+    assert_is_redirect_to(&response, "/admin/password");
+
+    let html_page = app.get_change_password_html().await;
+
+    assert!(html_page.contains(
+        "<p><i>You enterede two different new passwords - \
+                the field values must match.</i></p>"
+    ))
+}
