@@ -1,6 +1,6 @@
 use unicode_segmentation::UnicodeSegmentation;
 
-pub struct AdminPassword(String);
+pub struct AdminPassword(String); // TODO: Change String to Secret<String> or SecretString
 
 impl AdminPassword {
     pub fn new(password: String) -> Result<Self, ()> {
@@ -17,5 +17,11 @@ impl AdminPassword {
         }
 
         Ok(Self(password))
+    }
+}
+
+impl AsRef<String> for AdminPassword {
+    fn as_ref(&self) -> &String {
+        &self.0
     }
 }
