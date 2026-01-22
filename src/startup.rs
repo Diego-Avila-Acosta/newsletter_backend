@@ -4,6 +4,7 @@ use actix_session::SessionMiddleware;
 use actix_session::storage::RedisSessionStore;
 use actix_web::cookie::Key;
 use actix_web::dev::Server;
+use actix_web::middleware::from_fn;
 use actix_web::{App, HttpServer, web};
 use actix_web_flash_messages::FlashMessagesFramework;
 use actix_web_flash_messages::storage::CookieMessageStore;
@@ -13,6 +14,7 @@ use sqlx::PgPool;
 use sqlx::postgres::PgPoolOptions;
 use tracing_actix_web::TracingLogger;
 
+use crate::authentication::reject_anonymous_users;
 use crate::configuration::Settings;
 use crate::email_client::EmailClient;
 use crate::routes::*;
@@ -118,6 +120,7 @@ async fn run(
             .route("/newsletters", web::post().to(publish_newsletter))
             .service(
                 web::scope("/admin")
+                    .wrap(from_fn(reject_anonymous_users))
                     .route("/password", web::get().to(change_password_form))
                     .route("/password", web::post().to(change_password))
                     .route("/logout", web::post().to(log_out))
