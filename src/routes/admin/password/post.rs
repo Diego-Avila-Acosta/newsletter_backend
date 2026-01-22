@@ -3,7 +3,7 @@ use actix_web_flash_messages::FlashMessage;
 use secrecy::{ExposeSecret, Secret};
 use sqlx::PgPool;
 
-use crate::authentication::{AuthError, Credentials, validate_credentials};
+use crate::authentication::{self, AuthError, Credentials, validate_credentials};
 use crate::domain::AdminPassword;
 use crate::routes::admin::dashboard::get_username;
 use crate::session_state::TypedSession;
@@ -66,5 +66,13 @@ pub async fn change_password(
         return Ok(see_other("/admin/password"));
     }
 
-    todo!()
+    let new_password = new_password.unwrap();
+
+    authentication::change_password(user_id, new_password, &pool)
+        .await
+        .map_err(e500)?;
+
+    FlashMessage::success("Your password has been changed.").send();
+
+    Ok(see_other("/admin/password"))
 }
