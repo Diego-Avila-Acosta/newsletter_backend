@@ -112,14 +112,17 @@ async fn run(
                 secret_key.clone(),
             ))
             .wrap(TracingLogger::default())
-            .route("/admin/dashboard", web::get().to(admin_dashboard))
             .route("/health_check", web::get().to(health_check))
             .route("/subscriptions", web::post().to(subscribe))
             .route("/subscriptions/confirm", web::get().to(confirm))
             .route("/newsletters", web::post().to(publish_newsletter))
-            .route("/admin/password", web::get().to(change_password_form))
-            .route("/admin/password", web::post().to(change_password))
-            .route("/admin/logout", web::post().to(log_out))
+            .service(
+                web::scope("/admin")
+                    .route("/password", web::get().to(change_password_form))
+                    .route("/password", web::post().to(change_password))
+                    .route("/logout", web::post().to(log_out))
+                    .route("/dashboard", web::get().to(admin_dashboard)),
+            )
             .route("/login", web::get().to(login_form))
             .route("/login", web::post().to(login))
             .route("/", web::get().to(home))
