@@ -118,8 +118,16 @@ impl TestApp {
         Body: serde::Serialize,
     {
         self.http_client
-            .post(&format!("{}/admin/password", self.address))
+            .post(&format!("{}/admin/password", &self.address))
             .form(body)
+            .send()
+            .await
+            .expect("Failed to execute request")
+    }
+
+    pub async fn post_logout(&self) -> reqwest::Response {
+        self.http_client
+            .post(&format!("{}/admin/logout", &self.address))
             .send()
             .await
             .expect("Failed to execute request")
