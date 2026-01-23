@@ -132,6 +132,18 @@ impl TestApp {
             .await
             .expect("Failed to execute request")
     }
+
+    pub async fn get_send_issue(&self) -> reqwest::Response {
+        self.http_client
+            .post(&format!("{}/admin/newsletters", &self.address))
+            .send()
+            .await
+            .expect("Failed to execute request")
+    }
+
+    pub async fn get_send_issue_html(&self) -> String {
+        self.get_send_issue().await.text().await.unwrap()
+    }
 }
 
 pub struct TestUser {
