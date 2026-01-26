@@ -1,4 +1,3 @@
-use reqwest::StatusCode;
 use wiremock::Mock;
 use wiremock::ResponseTemplate;
 use wiremock::matchers::{method, path};
@@ -64,8 +63,10 @@ async fn newsletters_are_not_delivered_to_unconfirmed_subscribers() {
     });
 
     let response = app.post_send_issue(newsletter_request_body).await;
+    assert_is_redirect_to(&response, "/admin/newsletters");
 
-    assert_eq!(response.status().as_u16(), StatusCode::ACCEPTED);
+    let html_page = app.get_send_issue_html().await;
+    assert!(html_page.contains("<p><i>The newsletter issue has been published!</i></p>"))
 }
 
 #[tokio::test]
@@ -89,8 +90,10 @@ async fn newsletters_are_delivered_to_confirmed_subscribers() {
     });
 
     let response = app.post_send_issue(newsletter_request_body).await;
+    assert_is_redirect_to(&response, "/admin/newsletters");
 
-    assert_eq!(response.status().as_u16(), StatusCode::ACCEPTED);
+    let html_page = app.get_send_issue_html().await;
+    assert!(html_page.contains("<p><i>The newsletter issue has been published!</i></p>"))
 }
 
 async fn create_unconfirmed_subscriber(app: &TestApp) -> ConfirmationLinks {
