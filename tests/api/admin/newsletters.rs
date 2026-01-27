@@ -1,3 +1,4 @@
+use uuid::Uuid;
 use wiremock::Mock;
 use wiremock::ResponseTemplate;
 use wiremock::matchers::{method, path};
@@ -36,6 +37,7 @@ async fn must_be_logged_in_to_send_an_issue() {
         "title": "Newsletter title",
         "text_content": "Newsletter body as plain text",
         "html_content": "<p>Newsletter body as HTML</p>",
+        "idempotency_key": Uuid::new_v4().to_string(),
     });
 
     let response = app.post_send_issue(newsletter_request_body).await;
@@ -60,6 +62,7 @@ async fn newsletters_are_not_delivered_to_unconfirmed_subscribers() {
         "title": "Newsletter title",
         "text_content": "Newsletter body as plain text",
         "html_content": "<p>Newsletter body as HTML</p>",
+        "idempotency_key": Uuid::new_v4().to_string(),
     });
 
     let response = app.post_send_issue(newsletter_request_body).await;
@@ -86,7 +89,8 @@ async fn newsletters_are_delivered_to_confirmed_subscribers() {
     let newsletter_request_body = serde_json::json!({
         "title": "Newsletter title",
         "text_content": "Newsletter body as plain text",
-        "html_content": "<p>Newsletter body as HTML</p>"
+        "html_content": "<p>Newsletter body as HTML</p>",
+        "idempotency_key": Uuid::new_v4().to_string(),
     });
 
     let response = app.post_send_issue(newsletter_request_body).await;
@@ -182,7 +186,7 @@ async fn newsletter_creation_is_idempotent() {
         "idempotency_key": uuid::Uuid::new_v4().to_string()
     });
 
-    let response = app.post_send_issue(&newletter_request_body).await;
+    let response = app.post_send_issue(newletter_request_body).await;
     assert_is_redirect_to(&response, "/admin/newsletters");
 
     let html_page = app.get_send_issue_html().await;
