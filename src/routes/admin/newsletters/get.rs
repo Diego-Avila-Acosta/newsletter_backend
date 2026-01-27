@@ -3,12 +3,15 @@ use std::fmt::Write;
 use actix_web::HttpResponse;
 use actix_web::http::header::ContentType;
 use actix_web_flash_messages::IncomingFlashMessages;
+use uuid::Uuid;
 
 pub async fn send_issue_form(flash_messages: IncomingFlashMessages) -> HttpResponse {
     let mut msg_html = String::new();
     for m in flash_messages.iter() {
         writeln!(msg_html, "<p><i>{}</i></p>", m.content()).unwrap();
     }
+
+    let idempotency_key = Uuid::new_v4().to_string();
 
     let html_page = format!(
         r#"<!DOCTYPE html>
@@ -46,6 +49,8 @@ pub async fn send_issue_form(flash_messages: IncomingFlashMessages) -> HttpRespo
                     cols="50"
                 ></textarea>
             </label>
+
+            <input hidden type="text" name="idempotency_key" value="{idempotency_key}">
 
             <button type="submit">Publish</button>
         </form>
