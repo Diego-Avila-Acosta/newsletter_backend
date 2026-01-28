@@ -4,7 +4,7 @@ use crate::{
     authentication::UserId,
     domain::SubscriberEmail,
     email_client::EmailClient,
-    idempotency::{IdempotencyKey, get_saved_response, save_resposne},
+    idempotency::{IdempotencyKey, NextAction, get_saved_response, save_resposne, try_processing},
     utils::{e400, e500, see_other},
 };
 use actix_web::HttpResponse;
@@ -35,16 +35,19 @@ pub async fn send_issue(
         idempotency_key,
     } = form.0;
     let idempotency_key: IdempotencyKey = idempotency_key.try_into().map_err(e400)?;
-    let subscribers = get_confirmed_subscribers(&pool).await.map_err(e500)?;
 
-    if let Some(saved_response) = get_saved_response(&pool, &idempotency_key, user_id.deref())
+    match try_processing(&pool, &idempotency_key, &user_id)
         .await
         .map_err(e500)?
     {
-        FlashMessage::info("The newsletter issue has been published!").send();
-        return Ok(saved_response);
+        NextAction::ReturnSavedResponse(http_response) => {
+            FlashMessage::info("The newsletter issue has been published!").send();
+            return Ok(http_response);
+        }
+        NextAction::StartProcessing => {}
     }
 
+    let subscribers = get_confirmed_subscribers(&pool).await.map_err(e500)?;
     for subscriber in subscribers {
         match subscriber {
             Ok(subscriber) => email_client
