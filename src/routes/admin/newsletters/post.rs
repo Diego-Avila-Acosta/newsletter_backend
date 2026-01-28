@@ -36,7 +36,7 @@ pub async fn send_issue(
     } = form.0;
     let idempotency_key: IdempotencyKey = idempotency_key.try_into().map_err(e400)?;
 
-    match try_processing(&pool, &idempotency_key, &user_id)
+    let transaction = match try_processing(&pool, &idempotency_key, &user_id)
         .await
         .map_err(e500)?
     {
@@ -44,8 +44,8 @@ pub async fn send_issue(
             FlashMessage::info("The newsletter issue has been published!").send();
             return Ok(http_response);
         }
-        NextAction::StartProcessing => {}
-    }
+        NextAction::StartProcessing(transaction) => transaction,
+    };
 
     let subscribers = get_confirmed_subscribers(&pool).await.map_err(e500)?;
     for subscriber in subscribers {
@@ -69,7 +69,7 @@ pub async fn send_issue(
 
     FlashMessage::info("The newsletter issue has been published!").send();
     let response = see_other("/admin/newsletters");
-    let response = save_resposne(&user_id, &idempotency_key, response, &pool)
+    let response = save_resposne(&user_id, &idempotency_key, response, transaction)
         .await
         .map_err(e500)?;
     Ok(response)
