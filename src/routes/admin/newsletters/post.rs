@@ -1,10 +1,8 @@
-use std::ops::Deref;
-
 use crate::{
     authentication::UserId,
     domain::SubscriberEmail,
     email_client::EmailClient,
-    idempotency::{IdempotencyKey, NextAction, get_saved_response, save_resposne, try_processing},
+    idempotency::{IdempotencyKey, NextAction, save_response, try_processing},
     utils::{e400, e500, see_other},
 };
 use actix_web::HttpResponse;
@@ -69,7 +67,7 @@ pub async fn send_issue(
 
     FlashMessage::info("The newsletter issue has been published!").send();
     let response = see_other("/admin/newsletters");
-    let response = save_resposne(&user_id, &idempotency_key, response, transaction)
+    let response = save_response(&user_id, &idempotency_key, response, transaction)
         .await
         .map_err(e500)?;
     Ok(response)

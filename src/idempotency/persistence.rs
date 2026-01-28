@@ -56,7 +56,7 @@ pub async fn get_saved_response(
     }
 }
 
-pub async fn save_resposne(
+pub async fn save_response(
     user_id: &Uuid,
     idempotency_key: &IdempotencyKey,
     http_response: HttpResponse,
