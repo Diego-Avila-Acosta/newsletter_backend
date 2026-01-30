@@ -8,6 +8,7 @@ use actix_web::middleware::from_fn;
 use actix_web::{App, HttpServer, web};
 use actix_web_flash_messages::FlashMessagesFramework;
 use actix_web_flash_messages::storage::CookieMessageStore;
+use actix_web_metrics::ActixWebMetrics;
 use anyhow::Ok;
 use secrecy::{ExposeSecret, Secret};
 use sqlx::PgPool;
@@ -17,6 +18,7 @@ use tracing_actix_web::TracingLogger;
 use crate::authentication::reject_anonymous_users;
 use crate::configuration::Settings;
 use crate::email_client::EmailClient;
+use crate::metrics::get_metrics_middleware;
 use crate::routes::*;
 
 pub struct Application {
@@ -47,6 +49,8 @@ impl Application {
         let listener = TcpListener::bind(address).expect("Failed to bind address");
         let port = listener.local_addr().unwrap().port();
 
+        let metrics = get_metrics_middleware(configuration.metrics.namespace);
+
         let server = run(
             listener,
             connection,
@@ -54,6 +58,7 @@ impl Application {
             configuration.application.base_url,
             configuration.application.hmac_secret,
             configuration.redis_uri,
+            metrics,
         )
         .await?;
 
@@ -92,6 +97,7 @@ async fn run(
     base_url: String,
     hmac_secret: Secret<String>,
     redis_uri: Secret<String>,
+    metrics: ActixWebMetrics,
 ) -> Result<Server, anyhow::Error> {
     //Data
     let connection = web::Data::new(connection);
@@ -114,6 +120,7 @@ async fn run(
                 secret_key.clone(),
             ))
             .wrap(TracingLogger::default())
+            .wrap(metrics.clone())
             .route("/health_check", web::get().to(health_check))
             .route("/subscriptions", web::post().to(subscribe))
             .route("/subscriptions/confirm", web::get().to(confirm))
