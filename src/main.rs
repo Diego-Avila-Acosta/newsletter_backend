@@ -1,6 +1,6 @@
+use newsletter_backend::configuration::get_configuration;
 use newsletter_backend::startup::Application;
-use newsletter_backend::telemetry::init_subscriber;
-use newsletter_backend::{configuration::get_configuration, telemetry::get_subscriber};
+use newsletter_backend::telemetry::{get_subscriber, init_subscriber};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
