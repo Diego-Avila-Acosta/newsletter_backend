@@ -2,7 +2,7 @@ use argon2::password_hash::SaltString;
 use argon2::{Argon2, Params, PasswordHasher};
 use newsletter_backend::configuration::{DatabaseSettings, get_configuration};
 use newsletter_backend::startup::{Application, get_connection_pool};
-use newsletter_backend::telemetry::{get_subscriber, init_subscriber};
+use newsletter_backend::telemetry::{get_opentelemetry_parts, get_subscriber, init_subscriber};
 use once_cell::sync::Lazy;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use uuid::Uuid;
@@ -198,13 +198,16 @@ pub struct ConfirmationLinks {
 
 static TRACING: Lazy<()> = Lazy::new(|| {
     let default_filter_name = "info".to_string();
-    let subscriber_name = "test".to_string();
+    // TODO: Refactor subscriber name
+    let _subscriber_name = "test".to_string();
+    // TODO: Tracer Provider is not working for tests
+    let (tracer, _provider) = get_opentelemetry_parts("http://localhost:4317");
 
     if std::env::var("TEST_LOG").is_ok() {
-        let subscriber = get_subscriber(subscriber_name, default_filter_name, std::io::stdout);
+        let subscriber = get_subscriber(tracer, default_filter_name, std::io::stdout);
         init_subscriber(subscriber);
     } else {
-        let subscriber = get_subscriber(subscriber_name, default_filter_name, std::io::sink);
+        let subscriber = get_subscriber(tracer, default_filter_name, std::io::sink);
         init_subscriber(subscriber);
     }
 });
