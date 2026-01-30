@@ -11,6 +11,7 @@ pub struct Settings {
     pub application: ApplicationSettings,
     pub email_client: EmailClientSettings,
     pub redis_uri: Secret<String>,
+    pub metrics: MetricsSettings,
 }
 
 #[derive(serde::Deserialize, Clone)]
@@ -62,6 +63,11 @@ impl DatabaseSettings {
             self.username, self.password, self.host, self.port
         )
     }
+}
+
+#[derive(serde::Deserialize, Clone)]
+pub struct MetricsSettings {
+    pub namespace: String,
 }
 
 pub fn get_configuration() -> Result<Settings, ConfigError> {
