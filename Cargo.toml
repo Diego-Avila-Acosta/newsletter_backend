@@ -32,6 +32,8 @@ base64 = "0.21"
 argon2= { version = "0.4", features = ["std"] }
 actix-web-flash-messages = { version = "0.4", features = ["cookies"] }
 actix-session = { version = "0.7", features = ["redis-rs-tls-session"] }
+actix-web-metrics = "0.4"
+metrics-exporter-prometheus = "0.18"
 
 [dependencies.sqlx]
 version = "0.7"
