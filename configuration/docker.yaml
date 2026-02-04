@@ -6,3 +6,5 @@ database:
   password: "12345678"
   database_name: "newsletter"
 redis_uri: "redis://redis:6379"
+tracer:
+  export_endpoint: "http://jaeger:4317"
