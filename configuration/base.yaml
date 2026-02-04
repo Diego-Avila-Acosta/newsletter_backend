@@ -1,0 +1,21 @@
+application:
+  host: "127.0.0.1"
+  port: 8000
+  base_url: "http://127.0.0.1"
+  hmac_secret: "r+DGx!n(;z8&%#bHZyPdz&Dt&;.GJyaRVBZLFb(hZj%:;marG]4:HP0++/-6&D!YVMk:+W]7K0N&DRh*"
+database:
+  host: "127.0.0.1"
+  port: 5432
+  username: "postgres"
+  password: "12345678"
+  database_name: "newsletter"
+email_client:
+  base_url: "https://api.postmarkapp.com"
+  sender_email: "something@gmail.com"
+  authorization_token: "postmark_secret_token"
+  timeout_miliseconds: 10000
+redis_uri: "redis://127.0.0.1:6379"
+metrics:
+  namespace: "newsletter.backend"
+tracer:
+  export_endpoint: "http://localhost:4317"

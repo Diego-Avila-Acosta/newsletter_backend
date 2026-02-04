@@ -1,0 +1,6 @@
+database:
+  host: "postgres"
+  username: "postgres"
+  password: "12345678"
+  database_name: "newsletter"
+redis_uri: "redis://redis:6379"
