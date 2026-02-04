@@ -1,0 +1,72 @@
+services:
+  newsletter:
+    container_name: newsletter-backend
+    profiles: ["backend"]
+    build: .
+    ports:
+      - 8000:8000
+    volumes:
+      - ./configuration:/app/configuration
+    restart: unless-stopped
+    environment:
+      - APP_ENVIRONMENT=docker
+    depends_on:
+      postgres:
+        condition: service_started
+        required: false
+      redis:
+        condition: service_started
+        required: false
+
+  postgres:
+    container_name: postgres
+    image: postgres:latest
+    profiles: ["database"]
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PW}
+      - POSTGRES_DB=${POSTGRES_DB}
+    ports:
+      - 5432:5432
+    restart: unless-stopped
+
+  redis:
+    container_name: redis
+    image: redis:7
+    profiles: ["redis"]
+    ports:
+      - 6379:6379
+    restart: unless-stopped
+
+  prometheus:
+    container_name: prometheus
+    image: prom/prometheus:latest
+    profiles: ["observability"]
+    ports:
+      - 9090:9090
+    volumes:
+      - ./configuration/docker-prometheus.yml:/etc/prometheus/prometheus.yml
+    restart: unless-stopped
+
+  jaeger:
+    container_name: jaeger
+    image: jaegertracing/all-in-one:latest
+    profiles: ["observability"]
+    ports:
+      - "16686:16686"
+      - "8888:8888"
+      - "8889:8889"
+      - "4317:4317"
+      - "4318:4318"
+
+  grafana:
+    container_name: grafana
+    image: grafana/grafana
+    profiles: ["observability"]
+    user: "0"
+    ports:
+      - 3000:3000
+    restart: unless-stopped
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=grafana
