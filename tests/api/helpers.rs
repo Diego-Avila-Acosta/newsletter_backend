@@ -2,6 +2,7 @@ use argon2::password_hash::SaltString;
 use argon2::{Argon2, Params, PasswordHasher};
 use newsletter_backend::configuration::{DatabaseSettings, get_configuration};
 use newsletter_backend::email_client::EmailClient;
+use newsletter_backend::issue_delivery_worker::{ExecutionOutcome, try_execute_task};
 use newsletter_backend::startup::{Application, get_connection_pool};
 use newsletter_backend::telemetry::{get_opentelemetry_parts, get_subscriber, init_subscriber};
 use once_cell::sync::Lazy;
@@ -151,6 +152,18 @@ impl TestApp {
         });
 
         self.post_login(&credentials).await;
+    }
+
+    pub async fn dispatch_all_pending_emails(&self) {
+        loop {
+            if let ExecutionOutcome::EmptyQueue =
+                try_execute_task(&self.db_pool, &self.email_client)
+                    .await
+                    .unwrap()
+            {
+                break;
+            }
+        }
     }
 }
 
