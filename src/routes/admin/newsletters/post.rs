@@ -37,7 +37,7 @@ pub async fn send_issue(
         .map_err(e500)?
     {
         NextAction::ReturnSavedResponse(http_response) => {
-            FlashMessage::info("The newsletter issue has been published!").send();
+            FlashMessage::info("The newsletter issue has been accepted!").send();
             return Ok(http_response);
         }
         NextAction::StartProcessing(transaction) => transaction,
