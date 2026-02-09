@@ -71,7 +71,9 @@ async fn newsletters_are_not_delivered_to_unconfirmed_subscribers() {
     assert_is_redirect_to(&response, "/admin/newsletters");
 
     let html_page = app.get_send_issue_html().await;
-    assert!(html_page.contains("<p><i>The newsletter issue has been published!</i></p>"))
+    assert!(html_page.contains("<p><i>The newsletter issue has been accepted!</i></p>"));
+
+    app.dispatch_all_pending_emails().await;
 }
 
 #[tokio::test]
@@ -99,7 +101,9 @@ async fn newsletters_are_delivered_to_confirmed_subscribers() {
     assert_is_redirect_to(&response, "/admin/newsletters");
 
     let html_page = app.get_send_issue_html().await;
-    assert!(html_page.contains("<p><i>The newsletter issue has been published!</i></p>"))
+    assert!(html_page.contains("<p><i>The newsletter issue has been accepted!</i></p>"));
+
+    app.dispatch_all_pending_emails().await;
 }
 
 async fn create_unconfirmed_subscriber(app: &TestApp) -> ConfirmationLinks {
@@ -193,13 +197,16 @@ async fn newsletter_creation_is_idempotent() {
     assert_is_redirect_to(&response, "/admin/newsletters");
 
     let html_page = app.get_send_issue_html().await;
-    assert!(html_page.contains("<p><i>The newsletter issue has been published!</i></p>"));
+    assert!(html_page.contains("<p><i>The newsletter issue has been accepted!</i></p>"));
 
     let response = app.post_send_issue(newletter_request_body).await;
     assert_is_redirect_to(&response, "/admin/newsletters");
 
     let html_page = app.get_send_issue_html().await;
-    assert!(html_page.contains("<p><i>The newsletter issue has been published!</i></p>"));
+    dbg!(&html_page);
+    assert!(html_page.contains("<p><i>The newsletter issue has been accepted!</i></p>"));
+
+    app.dispatch_all_pending_emails().await;
 }
 
 #[tokio::test]
@@ -231,4 +238,6 @@ async fn concurrent_form_submission_is_handled_gracefully() {
         response.text().await.unwrap(),
         response2.text().await.unwrap()
     );
+
+    app.dispatch_all_pending_emails().await;
 }
