@@ -3,7 +3,7 @@ use std::time::Duration;
 use config::{Config, ConfigError};
 use secrecy::Secret;
 
-use crate::domain::SubscriberEmail;
+use crate::{domain::SubscriberEmail, email_client::EmailClient};
 
 #[derive(serde::Deserialize, Clone)]
 pub struct Settings {
@@ -38,6 +38,18 @@ impl EmailClientSettings {
 
     pub fn timeout(&self) -> Duration {
         Duration::from_millis(self.timeout_miliseconds)
+    }
+
+    pub fn client(self) -> EmailClient {
+        let sender_email = self.sender().expect("Invalid sender email address.");
+        let timeout = self.timeout();
+
+        EmailClient::new(
+            self.base_url,
+            sender_email,
+            self.authorization_token,
+            timeout,
+        )
     }
 }
 
