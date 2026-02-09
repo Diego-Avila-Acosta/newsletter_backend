@@ -1,7 +1,6 @@
 services:
   newsletter:
     container_name: newsletter-backend
-    profiles: ["backend"]
     build: .
     ports:
       - 8000:8000
@@ -40,7 +39,7 @@ services:
 
   prometheus:
     container_name: prometheus
-    image: prom/prometheus:latest
+    image: prom/prometheus:v3.9.1
     profiles: ["observability"]
     ports:
       - 9090:9090
@@ -67,6 +66,30 @@ services:
     ports:
       - 3000:3000
     restart: unless-stopped
+#    volumes:
+#      - grafana-storage:/var/lib/grafana
     environment:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=grafana
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor
+    container_name: cadvisor
+    profiles: ["cadvisor"]
+    restart: unless-stopped
+    privileged: true
+    devices:
+      - "/dev/kmsg"
+    ports:
+      - "8080:8080"
+    depends_on:
+      - redis
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+
+#volumes:
+  #  grafana-storage: {}
