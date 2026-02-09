@@ -7,7 +7,10 @@ use newsletter_backend::telemetry::{get_opentelemetry_parts, get_subscriber, ini
 async fn main() -> anyhow::Result<()> {
     let configuration = get_configuration().expect("Error reading initial configuration");
 
-    let (tracer, provider) = get_opentelemetry_parts(&configuration.tracer.export_endpoint);
+    let (tracer, provider) = get_opentelemetry_parts(
+        &configuration.tracer.export_endpoint,
+        configuration.tracer.sampling_ratio,
+    );
 
     let subscriber = get_subscriber(tracer, "info".into(), std::io::stdout);
     init_subscriber(subscriber);

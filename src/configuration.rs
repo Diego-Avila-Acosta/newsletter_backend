@@ -74,6 +74,7 @@ pub struct MetricsSettings {
 #[derive(serde::Deserialize, Clone)]
 pub struct TracerSettings {
     pub export_endpoint: String,
+    pub sampling_ratio: f64,
 }
 
 pub fn get_configuration() -> Result<Settings, ConfigError> {

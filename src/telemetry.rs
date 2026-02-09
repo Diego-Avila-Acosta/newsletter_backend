@@ -6,6 +6,7 @@ use opentelemetry::trace::TracerProvider;
 use opentelemetry_otlp::WithExportConfig;
 use opentelemetry_sdk::Resource;
 use opentelemetry_sdk::propagation::TraceContextPropagator;
+use opentelemetry_sdk::trace::Sampler;
 use opentelemetry_sdk::trace::{SdkTracer, SdkTracerProvider};
 use opentelemetry_semantic_conventions::resource;
 use tokio::task::JoinHandle;
@@ -56,7 +57,10 @@ where
     tokio::task::spawn_blocking(move || current_span.in_scope(f))
 }
 
-pub fn get_opentelemetry_parts(export_endpoint: &str) -> (SdkTracer, SdkTracerProvider) {
+pub fn get_opentelemetry_parts(
+    export_endpoint: &str,
+    sampling_ratio: f64,
+) -> (SdkTracer, SdkTracerProvider) {
     global::set_text_map_propagator(TraceContextPropagator::new());
 
     let otlp_exporter = opentelemetry_otlp::SpanExporter::builder()
@@ -65,7 +69,10 @@ pub fn get_opentelemetry_parts(export_endpoint: &str) -> (SdkTracer, SdkTracerPr
         .build()
         .expect("Failed to build span exporter");
 
+    let sampler = Sampler::TraceIdRatioBased(sampling_ratio);
+
     let provider = opentelemetry_sdk::trace::SdkTracerProvider::builder()
+        .with_sampler(sampler)
         .with_batch_exporter(otlp_exporter)
         .with_resource(RESOURCE.clone())
         .build();

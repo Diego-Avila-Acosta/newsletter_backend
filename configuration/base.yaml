@@ -19,3 +19,4 @@ metrics:
   namespace: "newsletter.backend"
 tracer:
   export_endpoint: "http://localhost:4317"
+  sampling_ratio: 0.1
