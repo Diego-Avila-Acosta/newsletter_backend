@@ -1,6 +1,7 @@
 use argon2::password_hash::SaltString;
 use argon2::{Argon2, Params, PasswordHasher};
 use newsletter_backend::configuration::{DatabaseSettings, get_configuration};
+use newsletter_backend::email_client::EmailClient;
 use newsletter_backend::startup::{Application, get_connection_pool};
 use newsletter_backend::telemetry::{get_opentelemetry_parts, get_subscriber, init_subscriber};
 use once_cell::sync::Lazy;
@@ -15,6 +16,7 @@ pub struct TestApp {
     http_client: reqwest::Client,
     pub email_server: MockServer,
     pub test_user: TestUser,
+    pub email_client: EmailClient,
 }
 
 impl TestApp {
@@ -251,6 +253,7 @@ pub async fn spawn_app() -> TestApp {
         email_server,
         port,
         test_user: TestUser::generate(),
+        email_client: configuration.email_client.client(),
     };
 
     test_app.test_user.store(&test_app.db_pool).await;
