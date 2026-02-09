@@ -1,7 +1,5 @@
 use crate::{
     authentication::UserId,
-    domain::SubscriberEmail,
-    email_client::EmailClient,
     idempotency::{IdempotencyKey, NextAction, save_response, try_processing},
     utils::{e400, e500, see_other},
 };
@@ -24,7 +22,6 @@ pub struct FormData {
 pub async fn send_issue(
     form: web::Form<FormData>,
     pool: web::Data<PgPool>,
-    email_client: web::Data<EmailClient>,
     user_id: ReqData<UserId>,
 ) -> Result<HttpResponse, actix_web::Error> {
     let FormData {
@@ -62,31 +59,6 @@ pub async fn send_issue(
         .await
         .map_err(e500)?;
     Ok(response)
-}
-
-struct ConfirmedSubscriber {
-    email: SubscriberEmail,
-}
-
-#[tracing::instrument(name = "Get confirmed subscribers", skip(pool))]
-async fn get_confirmed_subscribers(
-    pool: &PgPool,
-) -> Result<Vec<Result<ConfirmedSubscriber, anyhow::Error>>, anyhow::Error> {
-    let confirmed_subscribers = sqlx::query!(
-        r#"SELECT email FROM subscriptions
-        WHERE status = 'confirmed';
-        "#
-    )
-    .fetch_all(pool)
-    .await?
-    .into_iter()
-    .map(|r| match SubscriberEmail::parse(r.email) {
-        Ok(email) => Ok(ConfirmedSubscriber { email }),
-        Err(error) => Err(anyhow::anyhow!(error)),
-    })
-    .collect();
-
-    Ok(confirmed_subscribers)
 }
 
 #[tracing::instrument(skip_all)]
