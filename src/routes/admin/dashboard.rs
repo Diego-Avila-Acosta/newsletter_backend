@@ -1,3 +1,5 @@
+use std::ops::Deref;
+
 use actix_web::web;
 use actix_web::{HttpResponse, http::header::ContentType};
 use anyhow::Context;
@@ -7,6 +9,11 @@ use uuid::Uuid;
 use crate::authentication::UserId;
 use crate::utils::e500;
 
+#[tracing::instrument(
+    name = "Get admin dashboard html page"
+    skip(pool, user_id)
+    fields(user_id = %user_id.deref())
+)]
 pub async fn admin_dashboard(
     pool: web::Data<PgPool>,
     user_id: web::ReqData<UserId>,
@@ -36,7 +43,7 @@ pub async fn admin_dashboard(
         )))
 }
 
-#[tracing::instrument(name = "Get username", skip(pool))]
+#[tracing::instrument(name = "Get username by user_id from DB", skip(pool))]
 pub async fn get_username(user_id: Uuid, pool: &PgPool) -> Result<String, anyhow::Error> {
     let row = sqlx::query!(
         r#"

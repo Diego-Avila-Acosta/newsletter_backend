@@ -7,7 +7,11 @@ pub struct Parameters {
     subscription_token: String,
 }
 
-#[tracing::instrument(name = "Confirm a pending subscriber")]
+#[tracing::instrument(
+    name = "Confirm a pending subscriber"
+    skip(pool)
+    fields(subscription_token = %parameters.subscription_token)
+)]
 pub async fn confirm(parameters: web::Query<Parameters>, pool: web::Data<PgPool>) -> HttpResponse {
     let option_id =
         match get_subscriber_id_from_token(&pool, &parameters.0.subscription_token).await {
@@ -29,7 +33,7 @@ pub async fn confirm(parameters: web::Query<Parameters>, pool: web::Data<PgPool>
 
 #[tracing::instrument(
     name = "Mark susbscriber as confirmed"
-    skip(db_pool, subscriber_id)
+    skip(db_pool)
 )]
 async fn confirm_subscriber(db_pool: &PgPool, subscriber_id: Uuid) -> Result<(), sqlx::Error> {
     sqlx::query!(

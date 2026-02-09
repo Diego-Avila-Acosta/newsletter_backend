@@ -3,6 +3,10 @@ use std::fmt::Write;
 use actix_web::{HttpResponse, http::header::ContentType};
 use actix_web_flash_messages::IncomingFlashMessages;
 
+#[tracing::instrument(
+    name = "Get change password form"
+    skip(flash_messages) // TODO: May be better to record flash_messages to span
+)]
 pub async fn change_password_form(
     flash_messages: IncomingFlashMessages,
 ) -> Result<HttpResponse, actix_web::Error> {

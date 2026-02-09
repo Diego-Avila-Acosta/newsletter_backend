@@ -5,6 +5,10 @@ use actix_web::http::header::ContentType;
 use actix_web_flash_messages::IncomingFlashMessages;
 use uuid::Uuid;
 
+#[tracing::instrument(
+    name = "Get publish newsletter form"
+    skip(flash_messages) // TODO: May be better to record flash_messages to span
+)]
 pub async fn send_issue_form(flash_messages: IncomingFlashMessages) -> HttpResponse {
     let mut msg_html = String::new();
     for m in flash_messages.iter() {
