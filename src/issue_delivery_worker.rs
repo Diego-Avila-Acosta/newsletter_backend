@@ -27,7 +27,7 @@ async fn worker_loop(pool: &PgPool, email_client: EmailClient) -> Result<(), any
     }
 }
 
-enum ExecutionOutcome {
+pub enum ExecutionOutcome {
     TaskCompleted,
     EmptyQueue,
 }
@@ -39,7 +39,7 @@ enum ExecutionOutcome {
         subscriber_email=tracing::field::Empty
     )
 )]
-async fn try_execute_task(
+pub async fn try_execute_task(
     pool: &PgPool,
     email_client: &EmailClient,
 ) -> Result<ExecutionOutcome, anyhow::Error> {
