@@ -2,7 +2,7 @@ use sqlx::{Executor, PgPool, Postgres, Transaction};
 use tracing::{Span, field::display};
 use uuid::Uuid;
 
-use crate::email_client::EmailClient;
+use crate::{domain::SubscriberEmail, email_client::EmailClient};
 
 #[tracing::instrument(
     skip_all,
@@ -16,6 +16,36 @@ async fn try_execute_task(pool: &PgPool, email_client: &EmailClient) -> Result<(
         Span::current()
             .record("newsletter_issue_id", &display(issue_id))
             .record("subscriber_email", &display(&email));
+
+        match SubscriberEmail::parse(email.clone()) {
+            Ok(email) => {
+                let issue = get_issue(pool, issue_id).await?;
+                if let Err(e) = email_client
+                    .send_email(
+                        &email,
+                        &issue.title,
+                        &issue.html_content,
+                        &issue.text_content,
+                    )
+                    .await
+                {
+                    tracing::error!(
+                        error.cause_chain = ?e,
+                        error.message = %e,
+                        "Failed to deliver issue to a confirmed subscriber. \
+                        Skipping"
+                    );
+                }
+            }
+            Err(e) => {
+                tracing::error!(
+                    error.cause_chain = ?e,
+                    error.message = %e,
+                    "Skipping a confirmed subscriber. \
+                    Their stored contact details are invalid"
+                );
+            }
+        }
 
         delete_task(transaction, issue_id, &email).await?;
     }
@@ -74,4 +104,28 @@ async fn delete_task(
     transaction.execute(query).await?;
     transaction.commit().await?;
     Ok(())
+}
+
+struct NewsletterIssue {
+    title: String,
+    text_content: String,
+    html_content: String,
+}
+
+#[tracing::instrument(skip_all)]
+async fn get_issue(pool: &PgPool, issue_id: Uuid) -> Result<NewsletterIssue, anyhow::Error> {
+    let issue = sqlx::query_as!(
+        NewsletterIssue,
+        r#"
+        SELECT title, text_content, html_content
+        FROM newsletter_issues
+        WHERE
+            newsletter_issue_id = $1
+        "#,
+        issue_id
+    )
+    .fetch_one(pool)
+    .await?;
+
+    Ok(issue)
 }
