@@ -201,7 +201,7 @@ static TRACING: Lazy<()> = Lazy::new(|| {
     // TODO: Refactor subscriber name
     let _subscriber_name = "test".to_string();
     // TODO: Tracer Provider is not working for tests
-    let (tracer, _provider) = get_opentelemetry_parts("http://localhost:4317");
+    let (tracer, _provider) = get_opentelemetry_parts("http://localhost:4317", 0.0);
 
     if std::env::var("TEST_LOG").is_ok() {
         let subscriber = get_subscriber(tracer, default_filter_name, std::io::stdout);
