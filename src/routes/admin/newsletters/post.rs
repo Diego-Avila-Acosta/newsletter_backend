@@ -9,7 +9,8 @@ use actix_web::HttpResponse;
 use actix_web::web::{self, ReqData};
 use actix_web_flash_messages::FlashMessage;
 use anyhow::Context;
-use sqlx::postgres::PgPool;
+use sqlx::{Executor, Postgres, Transaction, postgres::PgPool};
+use uuid::Uuid;
 
 #[derive(serde::Deserialize)]
 pub struct FormData {
@@ -96,4 +97,35 @@ async fn get_confirmed_subscribers(
     .collect();
 
     Ok(confirmed_subscribers)
+}
+
+#[tracing::instrument(skip_all)]
+async fn insert_newsletter_issue(
+    transaction: &mut Transaction<'_, Postgres>,
+    title: &str,
+    text_content: &str,
+    html_content: &str,
+) -> Result<Uuid, sqlx::Error> {
+    let newsletters_issue_id = Uuid::new_v4();
+
+    let query = sqlx::query!(
+        r#"
+        INSERT INTO newsletter_issues (
+            newsletter_issue_id,
+            title,
+            text_content,
+            html_content,
+            published_at
+        )
+        VALUES($1, $2, $3, $4, now())
+        "#,
+        newsletters_issue_id,
+        title,
+        text_content,
+        html_content
+    );
+
+    transaction.execute(query).await?;
+
+    Ok(newsletters_issue_id)
 }
