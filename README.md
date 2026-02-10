@@ -84,9 +84,11 @@ docker compose up -d
 
 ## Configuration
 
-This project manages settings through a layered configuration based on the environment located in the `configuration/` directory. The backend relies on a base configuration which is then merged with environment-specific overrides.
+This project manages settings through a layered configuration based on the active environment. The backend relies on a base configuration which is then merged with environment-specific overrides.
 
 ### Configuration Files
+
+All files are located inside the `configuration/` directory.
 
 * **`base.yaml`**: Contains all default settings the backend depends on.
 * **Environment Overrides**: Specific settings that take precedence over `base.yaml` based on the active environment:
