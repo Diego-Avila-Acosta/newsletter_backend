@@ -53,7 +53,7 @@ A docker compose file is available at the root project. This compose file specif
 
 Profiles are used with the `COMPOSE_PROFILES` environment variable in order to specify which services to launch with the newsletter backend.
 
-Before running docker compose, an env file **MUST** be created with the following variables:
+Before running docker compose, a `.env` file **MUST** be created with the following variables:
 
 |Name|Usage|Example|
 |---|---|---|
@@ -81,6 +81,27 @@ Or by specifying `COMPOSE_PROFILES` in .env file:
 ```sh
 docker compose up -d
 ```
+
+## Configuration
+
+This project manages settings through a layered configuration based on the environment located in the `configuration/` directory. The backend relies on a base configuration which is then merged with environment-specific overrides.
+
+### Configuration Files
+
+* **`base.yaml`**: Contains all default settings the backend depends on.
+* **Environment Overrides**: Specific settings that take precedence over `base.yaml` based on the active environment:
+    * `dev.yaml`
+    * `docker.yaml`
+    * `production.yaml`
+
+To run with a specific environment, set the `APP_ENVIRONMENT` variable when executing the application.
+
+**Example:**
+```bash
+APP_ENVIRONMENT=production cargo run
+```
+
+**By default the backend will run with the `dev` environment**
 
 ## Used libraries
 
