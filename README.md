@@ -2,8 +2,8 @@
 
 ## Pre-requisites
 
- - [Rust]()
- - [Docker]()
+ - [Rust](https://rust-lang.org/)
+ - [Docker](https://www.docker.com/)
  - [sqlx-cli](https://crates.io/crates/sqlx-cli)
  - postgresql-client
 
